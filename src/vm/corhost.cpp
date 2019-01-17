@@ -35,6 +35,9 @@
 #include "finalizerthread.h"
 #include "threadsuspend.h"
 
+#include "assemblynative.hpp"
+#include "typeparse.h"
+
 #ifndef FEATURE_PAL
 #include "dwreport.h"
 #endif // !FEATURE_PAL
@@ -94,13 +97,84 @@ CCLRErrorReportingManager g_CLRErrorReportingManager;
 typedef DPTR(CONNID)   PTR_CONNID;
 
 
+// *** Embed API ***
+
+#pragma region EMBED API
+#ifndef DACCESS_COMPILE
+
+void* STDMETHODCALLTYPE CorHost2::APIAssemblyLoadMemory(const char* dataPtr, int dataLength)
+{
+    CONTRACTL
+    {
+        THROWS;
+    }
+    CONTRACTL_END;
+
+    AppDomain *domain = SystemDomain::GetCurrentDomain();
+    ICLRPrivBinder *binder = static_cast<ICLRPrivBinder*>(domain->GetFusionContext());
+
+    PEImageHolder pILImage(PEImage::LoadFlat(dataPtr, (COUNT_T)dataLength));
+
+    if (!pILImage->CheckILFormat()) {
+        return nullptr;
+    }
+
+    return AssemblyNative::LoadFromPEImage(binder, pILImage, NULL);
+}
+
+void* STDMETHODCALLTYPE CorHost2::APIAssemblyGetName(void* assembly)
+{
+    CONTRACTL
+    {
+        THROWS;
+    }
+    CONTRACTL_END;
+
+    Assembly* asmObject = static_cast<Assembly*>(assembly);
+
+    return (void*)asmObject->GetSimpleName();
+}
+
+DWORD STDMETHODCALLTYPE CorHost2::APIAssemblyExecMain(void* assembly)
+{
+    CONTRACTL
+    {
+        THROWS;
+    }
+    CONTRACTL_END;
+
+    DWORD retValue = 0;
+
+    INSTALL_UNHANDLED_MANAGED_EXCEPTION_TRAP;
+    INSTALL_UNWIND_AND_CONTINUE_HANDLER;
+
+    Assembly* asmObject = static_cast<Assembly*>(assembly);
+
+    GCX_COOP();
+
+    PTRARRAYREF arguments = NULL;
+    GCPROTECT_BEGIN(arguments);
+
+    arguments = (PTRARRAYREF)AllocateObjectArray(0, g_pStringClass);
+
+    retValue = asmObject->ExecuteMainMethod(&arguments, TRUE /* waitForOtherThreads */);
+
+    GCPROTECT_END();
+
+    UNINSTALL_UNWIND_AND_CONTINUE_HANDLER;
+    UNINSTALL_UNHANDLED_MANAGED_EXCEPTION_TRAP;
+
+    return retValue;
+}
+
+#endif
+#pragma endregion
+
+
 
 // Keep track connection id and name
 
 #ifndef DACCESS_COMPILE
-
-
-
 
 // *** ICorRuntimeHost methods ***
 

@@ -15,6 +15,7 @@
 #include <utilcode.h>
 #include <corhost.h>
 #include <configuration.h>
+
 #ifdef FEATURE_GDBJIT
 #include "../../vm/gdbjithelpers.h"
 #endif // FEATURE_GDBJIT
@@ -409,3 +410,33 @@ int coreclr_execute_assembly(
 
     return hr;
 }
+
+
+// *** Embed API ***
+#pragma region EMBED API
+
+extern "C"
+void* coreclr_assembly_load_memory(void* hostHandle, const char* dataPtr, int dataLength)
+{
+    ICLRRuntimeHost4* host = reinterpret_cast<ICLRRuntimeHost4*>(hostHandle);
+
+    return (void*)host->APIAssemblyLoadMemory(dataPtr, dataLength);
+}
+
+extern "C"
+void* coreclr_assembly_get_name(void* hostHandle, void* assembly) 
+{
+    ICLRRuntimeHost4* host = reinterpret_cast<ICLRRuntimeHost4*>(hostHandle);
+
+    return host->APIAssemblyGetName(assembly);
+}
+
+extern "C"
+unsigned int coreclr_assembly_exec_main(void* hostHandle, void* assembly)
+{
+    ICLRRuntimeHost4* host = reinterpret_cast<ICLRRuntimeHost4*>(hostHandle);
+
+    return (unsigned int)host->APIAssemblyExecMain(assembly);
+}
+
+#pragma endregion

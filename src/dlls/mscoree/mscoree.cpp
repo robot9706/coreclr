@@ -107,7 +107,7 @@ extern "C" BOOL WINAPI CoreDllMain(HANDLE hInstance, DWORD dwReason, LPVOID lpRe
             result = DllMain(hInstance, dwReason, lpReserved);
             _CRT_INIT(hInstance, dwReason, lpReserved);
             break;
-
+            
         default:
             result = FALSE;  // it'd be an OS bug if we got here - not much we can do.
             break;   

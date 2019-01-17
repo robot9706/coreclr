@@ -1808,7 +1808,14 @@ EXTERN_C const IID IID_ICLRRuntimeHost2;
             /* [in] */ int argc,
             /* [in] */ LPCWSTR *argv,
             /* [out] */ DWORD *pReturnValue) = 0;
-        
+
+        // *** Embed API ***
+#pragma region EMBED API
+    public:
+        virtual void* STDMETHODCALLTYPE APIAssemblyLoadMemory(const char* dataPtr, int dataLength) = 0;
+        virtual void* STDMETHODCALLTYPE APIAssemblyGetName(void* assembly) = 0;
+        virtual DWORD STDMETHODCALLTYPE APIAssemblyExecMain(void* assembly) = 0;
+#pragma endregion
     };
     
     MIDL_INTERFACE("64F6D366-D7C2-4F1F-B4B2-E8160CAC43AF")

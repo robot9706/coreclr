@@ -253,6 +253,14 @@ public:
     STDMETHODIMP_(ULONG) Release(void);
 
 
+    // *** Embed API methods ***
+#pragma region EMBED API
+    void* STDMETHODCALLTYPE APIAssemblyLoadMemory(const char* dataPtr, int dataLength);
+    void* STDMETHODCALLTYPE APIAssemblyGetName(void* assembly);
+    DWORD STDMETHODCALLTYPE APIAssemblyExecMain(void* assembly);
+
+#pragma endregion
+
     // *** ICorRuntimeHost methods ***
 
 #ifndef FEATURE_PAL    
