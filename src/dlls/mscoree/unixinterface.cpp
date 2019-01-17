@@ -413,6 +413,7 @@ int coreclr_execute_assembly(
 
 
 // *** Embed API ***
+// The following functions should also be added to the "coreclr.def" to be exported.
 #pragma region EMBED API
 
 extern "C"
@@ -437,6 +438,22 @@ unsigned int coreclr_assembly_exec_main(void* hostHandle, void* assembly)
     ICLRRuntimeHost4* host = reinterpret_cast<ICLRRuntimeHost4*>(hostHandle);
 
     return (unsigned int)host->APIAssemblyExecMain(assembly);
+}
+
+extern "C"
+void* coreclr_assembly_find_method(void* hostHandle, unsigned int appDomainID, void* assembly, const char* className, const char* methodName)
+{
+    ICLRRuntimeHost4* host = reinterpret_cast<ICLRRuntimeHost4*>(hostHandle);
+
+    ConstWStringHolder nameUnicode = StringToUnicode(className);
+    ConstWStringHolder methodUnicode = StringToUnicode(methodName);
+
+    void* fncPtr = nullptr;
+    void** fncPtrOut = &fncPtr;
+
+    host->APIAssemblyFindMethod(appDomainID, assembly, nameUnicode, methodUnicode, (INT_PTR*)fncPtrOut);
+
+    return fncPtr;
 }
 
 #pragma endregion

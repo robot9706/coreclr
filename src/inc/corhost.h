@@ -258,6 +258,7 @@ public:
     void* STDMETHODCALLTYPE APIAssemblyLoadMemory(const char* dataPtr, int dataLength);
     void* STDMETHODCALLTYPE APIAssemblyGetName(void* assembly);
     DWORD STDMETHODCALLTYPE APIAssemblyExecMain(void* assembly);
+    HRESULT STDMETHODCALLTYPE APIAssemblyFindMethod(unsigned int appDomainID, void* assembly, LPCWSTR className, LPCWSTR methodName, INT_PTR *funcPtr);
 
 #pragma endregion
 

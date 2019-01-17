@@ -1815,6 +1815,7 @@ EXTERN_C const IID IID_ICLRRuntimeHost2;
         virtual void* STDMETHODCALLTYPE APIAssemblyLoadMemory(const char* dataPtr, int dataLength) = 0;
         virtual void* STDMETHODCALLTYPE APIAssemblyGetName(void* assembly) = 0;
         virtual DWORD STDMETHODCALLTYPE APIAssemblyExecMain(void* assembly) = 0;
+        virtual HRESULT STDMETHODCALLTYPE APIAssemblyFindMethod(unsigned int appDomainID, void* assembly, LPCWSTR className, LPCWSTR methodName, INT_PTR *funcPtr) = 0;
 #pragma endregion
     };
     

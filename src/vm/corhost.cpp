@@ -69,6 +69,8 @@ UINT32 _tls_index = 0;
 SVAL_IMPL_INIT(ECustomDumpFlavor, CCLRErrorReportingManager, g_ECustomDumpFlavor, DUMP_FLAVOR_Default);
 #endif
 
+#define EMPTY_STRING_TO_NULL(s) {if(s && s[0] == 0) {s=NULL;};}
+
 #ifndef DACCESS_COMPILE
 
 extern void STDMETHODCALLTYPE EEShutDown(BOOL fIsDllUnloading);
@@ -165,6 +167,81 @@ DWORD STDMETHODCALLTYPE CorHost2::APIAssemblyExecMain(void* assembly)
     UNINSTALL_UNHANDLED_MANAGED_EXCEPTION_TRAP;
 
     return retValue;
+}
+
+HRESULT STDMETHODCALLTYPE CorHost2::APIAssemblyFindMethod(unsigned int appDomainID, void* assembly, LPCWSTR wszClassName, LPCWSTR wszMethodName, INT_PTR *fnPtr)
+{
+    CONTRACTL
+    {
+        NOTHROW;
+        if (GetThread()) { GC_TRIGGERS; }
+        else { DISABLED(GC_NOTRIGGER); }
+        ENTRY_POINT;  // This is called by a host.
+    }
+    CONTRACTL_END;
+
+    HRESULT hr = S_OK;
+
+    Assembly* pAsm = static_cast<Assembly*>(assembly);
+
+    EMPTY_STRING_TO_NULL(wszClassName);
+    EMPTY_STRING_TO_NULL(wszMethodName);
+
+    if (fnPtr == NULL)
+        return E_POINTER;
+    *fnPtr = NULL;
+
+    if (wszClassName == NULL)
+        return E_INVALIDARG;
+
+    if (wszMethodName == NULL)
+        return E_INVALIDARG;
+
+    BEGIN_ENTRYPOINT_NOTHROW;
+
+    BEGIN_EXTERNAL_ENTRYPOINT(&hr);
+    GCX_COOP_THREAD_EXISTS(GET_THREAD());
+
+    MAKE_UTF8PTR_FROMWIDE(szClassName, wszClassName);
+    MAKE_UTF8PTR_FROMWIDE(szMethodName, wszMethodName);
+
+    ADID id;
+    id.m_dwId = appDomainID;
+
+    ENTER_DOMAIN_ID(id)
+
+    GCX_PREEMP();
+
+    TypeHandle th = pAsm->GetLoader()->LoadTypeByNameThrowing(pAsm, NULL, szClassName);
+    MethodDesc* pMD = NULL;
+
+    if (!th.IsTypeDesc())
+    {
+        pMD = MemberLoader::FindMethodByName(th.GetMethodTable(), szMethodName, MemberLoader::FM_Unique);
+        if (pMD == NULL)
+        {
+            pMD = MemberLoader::FindMethodByName(th.GetMethodTable(), szMethodName, MemberLoader::FM_Default);
+            if (pMD != NULL)
+            {
+                return E_INVALIDARG;
+            }
+        }
+    }
+
+    if (pMD == NULL || !pMD->IsStatic() || pMD->ContainsGenericVariables()) {
+        return E_INVALIDARG;
+    }
+
+    UMEntryThunk *pUMEntryThunk = pMD->GetLoaderAllocator()->GetUMEntryThunkCache()->GetUMEntryThunk(pMD);
+    *fnPtr = (INT_PTR)pUMEntryThunk->GetCode();
+
+    END_DOMAIN_TRANSITION;
+
+    END_EXTERNAL_ENTRYPOINT;
+
+    END_ENTRYPOINT_NOTHROW;
+
+    return hr;
 }
 
 #endif
@@ -724,8 +801,6 @@ HRESULT CorHost2::ExecuteInAppDomain(DWORD dwAppDomainId,
 
     return hr;
 }
-
-#define EMPTY_STRING_TO_NULL(s) {if(s && s[0] == 0) {s=NULL;};}
 
 HRESULT CorHost2::_CreateAppDomain(
     LPCWSTR wszFriendlyName,
