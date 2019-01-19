@@ -37,6 +37,7 @@
 
 #include "assemblynative.hpp"
 #include "typeparse.h"
+#include "ecall.h"
 
 #ifndef FEATURE_PAL
 #include "dwreport.h"
@@ -242,6 +243,11 @@ HRESULT STDMETHODCALLTYPE CorHost2::APIAssemblyFindMethod(unsigned int appDomain
     END_ENTRYPOINT_NOTHROW;
 
     return hr;
+}
+
+void STDMETHODCALLTYPE CorHost2::APISetICallTable(void* table)
+{
+    ECall::SetICallTable(table);
 }
 
 #endif

@@ -83,6 +83,8 @@ class ECall
         //---------------------------------------------------------
         static void Init();
 
+        static void SetICallTable(void* table);
+
         static PCODE GetFCallImpl(MethodDesc* pMD, BOOL * pfSharedOrDynamicFCallImpl = NULL);
         static MethodDesc* MapTargetBackToMethod(PCODE pTarg, PCODE * ppAdjustedEntryPoint = NULL);
         static DWORD GetIDForMethod(MethodDesc *pMD);

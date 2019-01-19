@@ -14,6 +14,42 @@
 
 #include "comdelegate.h"
 
+#pragma region External FCalls
+struct FCallData
+{
+    const char* methodNamespce;
+    const char* methodClassname;
+    const char* methodName;
+
+    void* impl;
+    void* methodDesc;
+
+    FCallData* next;
+};
+
+static FCallData* _table;
+void ECall::SetICallTable(void* table)
+{
+    _table = (FCallData*)table;
+}
+
+static void* GetCustomICallImpl(DWORD targetIndex)
+{
+    DWORD index = 0;
+    FCallData* pointer = _table;
+    while (pointer != nullptr) {
+        if (index == targetIndex && pointer != nullptr) {
+            return pointer->impl;
+        }
+
+        pointer = pointer->next;
+        index++;
+    }
+
+    return nullptr;
+}
+#pragma endregion
+
 #ifndef DACCESS_COMPILE
 
 #ifdef CROSSGEN_COMPILE
@@ -222,7 +258,7 @@ static INT FindECIndexForMethod(MethodDesc *pMD, const LPVOID* impls)
 /* class index starts at 1. id == 0 means no implementation.                    */
 
 DWORD ECall::GetIDForMethod(MethodDesc *pMD)
-{
+ {
     CONTRACTL
     {
         THROWS;
@@ -233,15 +269,44 @@ DWORD ECall::GetIDForMethod(MethodDesc *pMD)
 
     // We should not go here for NGened methods
     _ASSERTE(!pMD->IsZapped());
-
+    
+    //Look for a CoreCLR internal method
     INT ImplsIndex = FindImplsIndexForClass(pMD->GetMethodTable());
-    if (ImplsIndex < 0)
-        return 0;
-    INT ECIndex = FindECIndexForMethod(pMD, c_rgECClasses[ImplsIndex].m_pECFunc);
-    if (ECIndex < 0)
-        return 0;
+    if (ImplsIndex >= 0) {
+        INT ECIndex = FindECIndexForMethod(pMD, c_rgECClasses[ImplsIndex].m_pECFunc);
+        if (ECIndex >= 0) {
+            return (ImplsIndex << 16) | (ECIndex + 1);
+        }
+    }
 
-    return (ImplsIndex<<16) | (ECIndex + 1);
+    //Look for a custom internal method
+    //The custom InternalCall table starts from (c_nECClasses)
+    LPCUTF8 szMethodName = pMD->GetName();
+    LPCUTF8 pszNamespace = 0;
+    LPCUTF8 pszName = pMD->GetMethodTable()->GetFullyQualifiedNameInfo(&pszNamespace);
+
+    DWORD index = 0;
+    FCallData* pointer = _table;
+    while (pointer != nullptr) {
+        if (strcmp(pointer->methodNamespce, pszNamespace) == 0) {
+            if (strcmp(pointer->methodClassname, pszName) == 0) {
+                if (strcmp(pointer->methodName, szMethodName) == 0) {
+                    //Found the method, no signature check
+                    pointer->methodDesc = (void*)pMD; //Store the MethodDesc so we can return it when the calls are mapped back to the method desc
+
+                    USHORT high = (USHORT)(index / 0xFFFF);
+                    USHORT low = (USHORT)(index % 0xFFFF);
+
+                    return (((high + c_nECClasses) << 16) | low);
+                }
+            }
+        }
+
+        pointer = pointer->next;
+        index++;
+    }
+
+    return 0;
 }
 
 static ECFunc *FindECFuncForID(DWORD id)
@@ -254,7 +319,13 @@ static ECFunc *FindECFuncForID(DWORD id)
     INT ImplsIndex  = (id >> 16);
     INT ECIndex     = (id & 0xffff) - 1;
 
-    return (ECFunc*)(c_rgECClasses[ImplsIndex].m_pECFunc + ECIndex);
+    //CoreCRL internal method
+    if (ImplsIndex < c_nECClasses) {
+        return (ECFunc*)(c_rgECClasses[ImplsIndex].m_pECFunc + ECIndex);
+    }
+
+    //Custom internal method
+    return nullptr;
 }
 
 static ECFunc* FindECFuncForMethod(MethodDesc* pMD)
@@ -347,6 +418,31 @@ PCODE ECall::GetFCallImpl(MethodDesc * pMD, BOOL * pfSharedOrDynamicFCallImpl /*
     //    COMPlusThrow(kSecurityException, BFA_ECALLS_MUST_BE_IN_SYS_MOD);
 
     ECFunc* ret = FindECFuncForMethod(pMD);
+
+    if (ret == nullptr) {
+        // This could be a custom InternalCall
+        DWORD id = ((FCallMethodDesc *)pMD)->GetECallID();
+
+        INT ImplsIndex = (id >> 16);
+        INT ECIndex = (id & 0xffff);
+
+        if (ImplsIndex >= c_nECClasses) {
+            USHORT high = (USHORT)(ImplsIndex - c_nECClasses);
+            USHORT low = (USHORT)ECIndex;
+
+            DWORD customCallIndex = (DWORD)(high << 16 | low);
+
+            PCODE customImpl = (PCODE)GetCustomICallImpl(customCallIndex);
+
+            // Consider this as InvalidDynamicFCallId
+
+            if (pfSharedOrDynamicFCallImpl)
+                *pfSharedOrDynamicFCallImpl = FALSE;
+
+            _ASSERTE(customImpl != NULL);
+            return customImpl;
+        }
+    }
 
     // ECall is a set of tables to call functions within the EE from the classlibs.
     // First we use the class name & namespace to find an array of function pointers for
@@ -609,18 +705,29 @@ MethodDesc* ECall::MapTargetBackToMethod(PCODE pTarg, PCODE * ppAdjustedEntryPoi
         return NULL;
 
     // Could this possibily be an FCall?
-    if ((pTarg < gLowestFCall) || (pTarg > gHighestFCall))
-        return NULL;
-
-    ECHash * pECHash = gFCallMethods[FCallHash(pTarg)];
-    while (pECHash != NULL)
+    if ((pTarg >= gLowestFCall) && (pTarg <= gHighestFCall))
     {
-        if (pECHash->m_pImplementation == pTarg)
+        ECHash * pECHash = gFCallMethods[FCallHash(pTarg)];
+        while (pECHash != NULL)
         {
-            return pECHash->m_pMD;
+            if (pECHash->m_pImplementation == pTarg)
+            {
+                return pECHash->m_pMD;
+            }
+            pECHash = pECHash->m_pNext;
         }
-        pECHash = pECHash->m_pNext;
     }
+
+    //Look for the impl in the external fcall table
+    FCallData* pointer = _table;
+    while (pointer != nullptr) {
+        if (pointer->impl == (void*)pTarg) {
+            return (MethodDesc*)pointer->methodDesc;
+        }
+
+        pointer = pointer->next;
+    }
+
     return NULL;
 }
 

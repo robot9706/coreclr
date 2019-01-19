@@ -456,4 +456,10 @@ void* coreclr_assembly_find_method(void* hostHandle, unsigned int appDomainID, v
     return fncPtr;
 }
 
+extern "C"
+void coreclr_icall_ptr(void* hostHandle, void* tablePtr)
+{
+    ICLRRuntimeHost4* host = reinterpret_cast<ICLRRuntimeHost4*>(hostHandle);
+}
+
 #pragma endregion

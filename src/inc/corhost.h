@@ -259,6 +259,7 @@ public:
     void* STDMETHODCALLTYPE APIAssemblyGetName(void* assembly);
     DWORD STDMETHODCALLTYPE APIAssemblyExecMain(void* assembly);
     HRESULT STDMETHODCALLTYPE APIAssemblyFindMethod(unsigned int appDomainID, void* assembly, LPCWSTR className, LPCWSTR methodName, INT_PTR *funcPtr);
+    void STDMETHODCALLTYPE APISetICallTable(void* table);
 
 #pragma endregion
 
