@@ -342,8 +342,9 @@ PCODE ECall::GetFCallImpl(MethodDesc * pMD, BOOL * pfSharedOrDynamicFCallImpl /*
 #endif // FEATURE_COMINTEROP
     }
 
-    if (!pMD->GetModule()->IsSystem())
-        COMPlusThrow(kSecurityException, BFA_ECALLS_MUST_BE_IN_SYS_MOD);
+    //Commented to be able to make InternalCalls from non system assemblies
+    //if (!pMD->GetModule()->IsSystem())
+    //    COMPlusThrow(kSecurityException, BFA_ECALLS_MUST_BE_IN_SYS_MOD);
 
     ECFunc* ret = FindECFuncForMethod(pMD);
 
