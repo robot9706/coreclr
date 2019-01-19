@@ -686,7 +686,7 @@ bool IsInSameVersionBubble(Assembly * current, Assembly * target)
     if (current == target)
         return true;
 
-    return false;
+    return IsLargeVersionBubbleEnabled();
 }
 
 // Returns true if the assemblies defining current and target are in the same version bubble
@@ -5554,7 +5554,7 @@ void CEEInfo::getCallInfo(
                 // We shouldn't be using GetLoaderAllocator here because for LCG, we need to get the 
                 // VirtualCallStubManager from where the stub will be used. 
                 // For normal methods there is no difference.
-                LoaderAllocator *pLoaderAllocator = m_pMethodBeingCompiled->GetLoaderAllocatorForCode();
+                LoaderAllocator *pLoaderAllocator = m_pMethodBeingCompiled->GetLoaderAllocator();
                 VirtualCallStubManager *pMgr = pLoaderAllocator->GetVirtualCallStubManager();
 
                 PCODE addr = pMgr->GetCallStub(exactType, pTargetMD);

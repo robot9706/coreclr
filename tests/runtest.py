@@ -67,7 +67,6 @@ else:
     import urllib.request
 
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts"))
-
 from coreclr_arguments import *
 
 ################################################################################
@@ -122,10 +121,11 @@ parser.add_argument("--gcsimulator", dest="gcsimulator", action="store_true", de
 parser.add_argument("--jitdisasm", dest="jitdisasm", action="store_true", default=False)
 parser.add_argument("--ilasmroundtrip", dest="ilasmroundtrip", action="store_true", default=False)
 parser.add_argument("--run_crossgen_tests", dest="run_crossgen_tests", action="store_true", default=False)
+parser.add_argument("--large_version_bubble", dest="large_version_bubble", action="store_true", default=False)
 parser.add_argument("--precompile_core_root", dest="precompile_core_root", action="store_true", default=False)
 parser.add_argument("--sequential", dest="sequential", action="store_true", default=False)
 
-parser.add_argument("--build_xunit_test_wrappers", dest="build_test_wrappers", action="store_true", default=False)
+parser.add_argument("--build_xunit_test_wrappers", dest="build_xunit_test_wrappers", action="store_true", default=False)
 parser.add_argument("--generate_layout", dest="generate_layout", action="store_true", default=False)
 parser.add_argument("--generate_layout_only", dest="generate_layout_only", action="store_true", default=False)
 parser.add_argument("--analyze_results_only", dest="analyze_results_only", action="store_true", default=False)
@@ -148,6 +148,25 @@ file_name_cache = defaultdict(lambda: None)
 ################################################################################
 # Classes
 ################################################################################
+
+class TempFile:
+    def __init__(self, extension):
+        self.file = None
+        self.file_name = None
+        self.extension = extension
+
+    def __enter__(self):
+        self.file = tempfile.NamedTemporaryFile(delete=False, suffix=self.extension)
+
+        self.file_name = self.file.name
+
+        return self.file_name
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        try:
+            os.remove(self.file_name)
+        except:
+            print("Error failed to delete: {}.".format(self.file_name))
 
 class DebugEnv:
     def __init__(self, 
@@ -440,7 +459,7 @@ def create_and_use_test_env(_os, env, func):
 
     for key in env:
         value = env[key]
-        if "complus" in key.lower():
+        if "complus" in key.lower() or "superpmi" in key.lower():
             complus_vars[key] = value
 
     if len(list(complus_vars.keys())) > 0:
@@ -777,6 +796,12 @@ def setup_coredump_generation(host_os):
         print("CoreDump generation not enabled due to unsupported OS: %s" % host_os)
         return
 
+    if isinstance(coredump_pattern, bytes):
+        print("Binary data found. Decoding.")
+        coredump_pattern = coredump_pattern.decode('ascii')
+        
+    print("CoreDump Pattern: {}".format(coredump_pattern))
+
     # resource is only available on Unix platforms
     import resource
 
@@ -968,6 +993,7 @@ def run_tests(host_os,
               is_ilasm=False,
               is_illink=False,
               run_crossgen_tests=False,
+              large_version_bubble=False,
               run_sequential=False,
               limited_core_dumps=False):
     """ Run the coreclr tests
@@ -1027,6 +1053,10 @@ def run_tests(host_os,
         print("Running tests R2R")
         print("Setting RunCrossGen=true")
         os.environ["RunCrossGen"] = "true"
+
+    if large_version_bubble:
+        print("Large Version Bubble enabled")
+        os.environ["LargeVersionBubble"] = "true"
 
     if gc_stress:
         print("Running GCStress, extending timeout to 120 minutes.")
@@ -1113,9 +1143,12 @@ def setup_args(args):
         location using the build type and the arch.
     """
 
+    require_built_test_dir = not args.generate_layout_only and True
+    require_built_core_root = not args.generate_layout_only and True
+
     coreclr_setup_args = CoreclrArguments(args, 
-                                          require_built_test_dir=True, 
-                                          require_built_core_root=True, 
+                                          require_built_test_dir=require_built_test_dir, 
+                                          require_built_core_root=require_built_core_root, 
                                           require_built_product_dir=args.generate_layout_only)
 
     normal_location = os.path.join(coreclr_setup_args.bin_location, "tests", "%s.%s.%s" % (coreclr_setup_args.host_os, coreclr_setup_args.arch, coreclr_setup_args.build_type))
@@ -1167,9 +1200,118 @@ def setup_args(args):
                                       "Error setting test location.")
 
     coreclr_setup_args.verify(args,
-                              "generate_layout",
+                              "build_xunit_test_wrappers",
                               lambda arg: True,
-                              "Error setting generate_layout")
+                              "Error setting build_xunit_test_wrappers")
+
+    coreclr_setup_args.verify(args,
+                              "generate_layout_only",
+                              lambda arg: True,
+                              "Error setting generate_layout_only")
+
+    if coreclr_setup_args.generate_layout_only:
+        # Force generate_layout
+        coreclr_setup_args.verify(args,
+                                "generate_layout",
+                                lambda arg: True,
+                                "Error setting generate_layout",
+                                modify_arg=lambda arg: True)
+    
+    else:
+        coreclr_setup_args.verify(args,
+                                "generate_layout",
+                                lambda arg: True,
+                                "Error setting generate_layout")
+
+    coreclr_setup_args.verify(args,
+                              "test_env",
+                              lambda arg: True,
+                              "Error setting test_env")
+
+    coreclr_setup_args.verify(args,
+                              "analyze_results_only",
+                              lambda arg: True,
+                              "Error setting analyze_results_only")
+
+    coreclr_setup_args.verify(args,
+                              "crossgen_altjit",
+                              lambda arg: True,
+                              "Error setting crossgen_altjit")
+
+    coreclr_setup_args.verify(args,
+                              "altjit_arch",
+                              lambda arg: True,
+                              "Error setting altjit_arch")
+
+    coreclr_setup_args.verify(args,
+                              "rid",
+                              lambda arg: True,
+                              "Error setting rid")
+
+    coreclr_setup_args.verify(args,
+                              "il_link",
+                              lambda arg: True,
+                              "Error setting il_link")
+
+    coreclr_setup_args.verify(args,
+                              "long_gc",
+                              lambda arg: True,
+                              "Error setting long_gc")
+    
+    coreclr_setup_args.verify(args,
+                              "gcsimulator",
+                              lambda arg: True,
+                              "Error setting gcsimulator")
+    
+    coreclr_setup_args.verify(args,
+                              "jitdisasm",
+                              lambda arg: True,
+                              "Error setting jitdisasm")
+
+    coreclr_setup_args.verify(args,
+                              "ilasmroundtrip",
+                              lambda arg: True,
+                              "Error setting ilasmroundtrip")
+
+    coreclr_setup_args.verify(args,
+                              "large_version_bubble",
+                              lambda arg: True,
+                              "Error setting large_version_bubble")
+    
+    coreclr_setup_args.verify(args,
+                              "run_crossgen_tests",
+                              lambda arg: True,
+                              "Error setting run_crossgen_tests")
+
+    coreclr_setup_args.verify(args,
+                              "precompile_core_root",
+                              lambda arg: True,
+                              "Error setting precompile_core_root")
+
+    coreclr_setup_args.verify(args,
+                              "sequential",
+                              lambda arg: True,
+                              "Error setting sequential")
+    
+    coreclr_setup_args.verify(args,
+                              "build_xunit_test_wrappers",
+                              lambda arg: True,
+                              "Error setting build_xunit_test_wrappers")
+    
+    coreclr_setup_args.verify(args,
+                              "verbose",
+                              lambda arg: True,
+                              "Error setting verbose")
+
+    coreclr_setup_args.verify(args,
+                              "limited_core_dumps",
+                              lambda arg: True,
+                              "Error setting limited_core_dumps")
+    
+    coreclr_setup_args.verify(args,
+                              "test_native_bin_location",
+                              lambda arg: True,
+                              "Error setting test_native_bin_location")
 
     is_same_os = False
     is_same_arch = False
@@ -1207,16 +1349,7 @@ def setup_args(args):
     print("test_location            :%s" % coreclr_setup_args.test_location)
     print("test_native_bin_location :%s" % coreclr_setup_args.test_native_bin_location)
 
-    return (
-        coreclr_setup_args.host_os,
-        coreclr_setup_args.arch,
-        coreclr_setup_args.build_type,
-        coreclr_setup_args.coreclr_repo_location,
-        coreclr_setup_args.product_location,
-        coreclr_setup_args.core_root,
-        coreclr_setup_args.test_location,
-        coreclr_setup_args.test_native_bin_location
-    )
+    return coreclr_setup_args
 
 def setup_tools(host_os, coreclr_repo_location):
     """ Setup the tools for the repo
@@ -2220,7 +2353,7 @@ def do_setup(host_os,
     # ExcludeList items in issues.targets for both build arch and altjit arch
     is_altjit_scenario = not args.altjit_arch is None
 
-    if unprocessed_args.build_test_wrappers:
+    if unprocessed_args.build_xunit_test_wrappers:
         build_test_wrappers(host_os, arch, build_type, coreclr_repo_location, test_location)
     elif build_info is None:
         build_test_wrappers(host_os, arch, build_type, coreclr_repo_location, test_location)
@@ -2243,6 +2376,7 @@ def do_setup(host_os,
                      is_ilasm=unprocessed_args.ilasmroundtrip,
                      is_illink=unprocessed_args.il_link, 
                      run_crossgen_tests=unprocessed_args.run_crossgen_tests,
+                     large_version_bubble=unprocessed_args.large_version_bubble,
                      run_sequential=unprocessed_args.sequential,
                      limited_core_dumps=unprocessed_args.limited_core_dumps)
 
@@ -2254,7 +2388,19 @@ def main(args):
     global g_verbose
     g_verbose = args.verbose
 
-    host_os, arch, build_type, coreclr_repo_location, product_location, core_root, test_location, test_native_bin_location = setup_args(args)
+    coreclr_setup_args = setup_args(args)
+    args = coreclr_setup_args
+
+    host_os, arch, build_type, coreclr_repo_location, product_location, core_root, test_location, test_native_bin_location = (
+        coreclr_setup_args.host_os,
+        coreclr_setup_args.arch,
+        coreclr_setup_args.build_type,
+        coreclr_setup_args.coreclr_repo_location,
+        coreclr_setup_args.product_location,
+        coreclr_setup_args.core_root,
+        coreclr_setup_args.test_location,
+        coreclr_setup_args.test_native_bin_location
+    )
 
     ret_code = 0
 
