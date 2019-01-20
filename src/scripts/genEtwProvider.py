@@ -5,6 +5,9 @@
 ##
 ## This script generates the interface to ETW using MC.exe
 
+import sys, os
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+
 import os
 from os import path
 import shutil

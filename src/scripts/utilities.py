@@ -5,6 +5,9 @@
 ##
 ##  This file provides utility functions to the adjacent python scripts
 
+import sys, os
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+
 from hashlib import sha256
 from io import StringIO
 import filecmp

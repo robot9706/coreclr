@@ -12,6 +12,9 @@
 # Python 2 compatibility
 from __future__ import print_function
 
+import sys, os
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+
 import os
 import xml.dom.minidom as DOM
 from utilities import open_for_update

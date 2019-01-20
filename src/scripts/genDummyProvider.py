@@ -9,6 +9,9 @@
 ##  The intended use if for platforms which support event pipe
 ##  but do not have a an eventing platform to recieve report events
 
+import sys, os
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+
 import os
 from genEventing import *
 from utilities import open_for_update
