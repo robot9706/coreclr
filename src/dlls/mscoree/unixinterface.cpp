@@ -481,11 +481,11 @@ void coreclr_array_getpointer(void* hostHandle, void* arrayPointer, void** targe
 }
 
 extern "C"
-void* coreclr_string_new(void* hostHandle, void* dataPointer, int numData, int stringLength)
+void* coreclr_string_new(void* hostHandle, void* dataPointer)
 {
     ICLRRuntimeHost4* host = reinterpret_cast<ICLRRuntimeHost4*>(hostHandle);
 
-    return host->APINewString(dataPointer, numData, stringLength);
+    return host->APINewString(dataPointer);
 }
 
 #pragma endregion

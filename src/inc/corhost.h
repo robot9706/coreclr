@@ -262,7 +262,7 @@ public:
     void STDMETHODCALLTYPE APISetICallTable(void* table);
     void* STDMETHODCALLTYPE APIGetStringPointer(void* stringPointer);
     void STDMETHODCALLTYPE APIGetArrayPointer(void* arrayPointer, void** targetDataPointer, DWORD* numElements);
-    void* STDMETHODCALLTYPE APINewString(void* dataPointer, int numData, int stringLength);
+    void* STDMETHODCALLTYPE APINewString(void* dataPointer);
 
 #pragma endregion
 

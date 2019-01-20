@@ -267,7 +267,7 @@ void STDMETHODCALLTYPE CorHost2::APIGetArrayPointer(void* arrayPointer, void** t
     *targetDataPointer = managedArray->GetDataPtr();
 }
 
-void* STDMETHODCALLTYPE CorHost2::APINewString(void* dataPointer, int numData, int stringLength)
+void* STDMETHODCALLTYPE CorHost2::APINewString(void* dataPointer)
 {
     CONTRACTL
     {
