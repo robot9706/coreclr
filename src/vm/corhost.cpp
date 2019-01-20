@@ -250,6 +250,50 @@ void STDMETHODCALLTYPE CorHost2::APISetICallTable(void* table)
     ECall::SetICallTable(table);
 }
 
+void* STDMETHODCALLTYPE CorHost2::APIGetStringPointer(void* stringPointer)
+{
+    StringObject* managedString = (StringObject*)stringPointer;
+
+    WCHAR* buffer = managedString->GetBuffer();
+
+    return (void*)buffer;
+}
+
+void STDMETHODCALLTYPE CorHost2::APIGetArrayPointer(void* arrayPointer, void** targetDataPointer, DWORD* numElements)
+{
+    ArrayBase* managedArray = (ArrayBase*)arrayPointer;
+
+    *numElements = managedArray->GetNumComponents();
+    *targetDataPointer = managedArray->GetDataPtr();
+}
+
+void* STDMETHODCALLTYPE CorHost2::APINewString(void* dataPointer, int numData, int stringLength)
+{
+    CONTRACTL
+    {
+        THROWS;
+    }
+    CONTRACTL_END;
+
+    OBJECTREF newString = NULL;
+
+    //IDK what these are
+    INSTALL_UNHANDLED_MANAGED_EXCEPTION_TRAP;
+    INSTALL_UNWIND_AND_CONTINUE_HANDLER;
+
+    //I'm probably creating GC holes all over the place
+
+    GCX_COOP();
+
+    LPCWSTR dataPtr = (LPCWSTR)dataPointer;
+    newString = StringObject::NewString(dataPtr);
+
+    UNINSTALL_UNWIND_AND_CONTINUE_HANDLER;
+    UNINSTALL_UNHANDLED_MANAGED_EXCEPTION_TRAP;
+
+    return (void*)OBJECTREFToObject(newString);
+}
+
 #endif
 #pragma endregion
 

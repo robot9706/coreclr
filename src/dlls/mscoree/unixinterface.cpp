@@ -460,6 +460,32 @@ extern "C"
 void coreclr_icall_ptr(void* hostHandle, void* tablePtr)
 {
     ICLRRuntimeHost4* host = reinterpret_cast<ICLRRuntimeHost4*>(hostHandle);
+
+    host->APISetICallTable(tablePtr);
+}
+
+extern "C"
+void* coreclr_string_getpointer(void* hostHandle, void* stringPointer)
+{
+    ICLRRuntimeHost4* host = reinterpret_cast<ICLRRuntimeHost4*>(hostHandle);
+
+    return host->APIGetStringPointer(stringPointer);
+}
+
+extern "C"
+void coreclr_array_getpointer(void* hostHandle, void* arrayPointer, void** targetPointer, unsigned long *elementCount)
+{
+    ICLRRuntimeHost4* host = reinterpret_cast<ICLRRuntimeHost4*>(hostHandle);
+
+    host->APIGetArrayPointer(arrayPointer, targetPointer, elementCount);
+}
+
+extern "C"
+void* coreclr_string_new(void* hostHandle, void* dataPointer, int numData, int stringLength)
+{
+    ICLRRuntimeHost4* host = reinterpret_cast<ICLRRuntimeHost4*>(hostHandle);
+
+    return host->APINewString(dataPointer, numData, stringLength);
 }
 
 #pragma endregion

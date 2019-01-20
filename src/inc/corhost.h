@@ -260,6 +260,9 @@ public:
     DWORD STDMETHODCALLTYPE APIAssemblyExecMain(void* assembly);
     HRESULT STDMETHODCALLTYPE APIAssemblyFindMethod(unsigned int appDomainID, void* assembly, LPCWSTR className, LPCWSTR methodName, INT_PTR *funcPtr);
     void STDMETHODCALLTYPE APISetICallTable(void* table);
+    void* STDMETHODCALLTYPE APIGetStringPointer(void* stringPointer);
+    void STDMETHODCALLTYPE APIGetArrayPointer(void* arrayPointer, void** targetDataPointer, DWORD* numElements);
+    void* STDMETHODCALLTYPE APINewString(void* dataPointer, int numData, int stringLength);
 
 #pragma endregion
 

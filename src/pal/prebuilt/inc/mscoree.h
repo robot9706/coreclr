@@ -1817,6 +1817,9 @@ EXTERN_C const IID IID_ICLRRuntimeHost2;
         virtual DWORD STDMETHODCALLTYPE APIAssemblyExecMain(void* assembly) = 0;
         virtual HRESULT STDMETHODCALLTYPE APIAssemblyFindMethod(unsigned int appDomainID, void* assembly, LPCWSTR className, LPCWSTR methodName, INT_PTR *funcPtr) = 0;
         virtual void STDMETHODCALLTYPE APISetICallTable(void* table) = 0;
+        virtual void* STDMETHODCALLTYPE APIGetStringPointer(void* stringPointer) = 0;
+        virtual void STDMETHODCALLTYPE APIGetArrayPointer(void* arrayPointer, void** targetDataPointer, DWORD* numElements) = 0;
+        virtual void* STDMETHODCALLTYPE APINewString(void* dataPointer, int numData, int stringLength) = 0;
 #pragma endregion
     };
     
