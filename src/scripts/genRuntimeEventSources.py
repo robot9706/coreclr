@@ -4,6 +4,9 @@
 ## See the LICENSE file in the project root for more information.
 #
 
+import sys, os
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+
 import os
 import xml.dom.minidom as DOM
 from utilities import open_for_update
