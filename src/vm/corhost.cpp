@@ -125,6 +125,26 @@ void* STDMETHODCALLTYPE CorHost2::APIAssemblyLoadMemory(const char* dataPtr, int
     return AssemblyNative::LoadFromPEImage(binder, pILImage, NULL);
 }
 
+void* STDMETHODCALLTYPE CorHost2::APIAssemblyLoad(LPCWSTR path)
+{
+    CONTRACTL
+    {
+        THROWS;
+    }
+    CONTRACTL_END;
+
+    AppDomain *domain = SystemDomain::GetCurrentDomain();
+    ICLRPrivBinder *binder = static_cast<ICLRPrivBinder*>(domain->GetFusionContext());
+
+    PEImageHolder pILImage(PEImage::OpenImage(path));
+
+    if (!pILImage->CheckILFormat()) {
+        return nullptr;
+    }
+
+    return AssemblyNative::LoadFromPEImage(binder, pILImage, NULL);
+}
+
 void* STDMETHODCALLTYPE CorHost2::APIAssemblyGetName(void* assembly)
 {
     CONTRACTL

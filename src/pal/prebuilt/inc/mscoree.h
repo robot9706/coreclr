@@ -1820,6 +1820,7 @@ EXTERN_C const IID IID_ICLRRuntimeHost2;
         virtual void* STDMETHODCALLTYPE APIGetStringPointer(void* stringPointer) = 0;
         virtual void STDMETHODCALLTYPE APIGetArrayPointer(void* arrayPointer, void** targetDataPointer, DWORD* numElements) = 0;
         virtual void* STDMETHODCALLTYPE APINewString(void* dataPointer) = 0;
+        virtual void* STDMETHODCALLTYPE APIAssemblyLoad(LPCWSTR path) = 0;
 #pragma endregion
     };
     

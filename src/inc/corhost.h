@@ -263,6 +263,7 @@ public:
     void* STDMETHODCALLTYPE APIGetStringPointer(void* stringPointer);
     void STDMETHODCALLTYPE APIGetArrayPointer(void* arrayPointer, void** targetDataPointer, DWORD* numElements);
     void* STDMETHODCALLTYPE APINewString(void* dataPointer);
+    void* STDMETHODCALLTYPE APIAssemblyLoad(LPCWSTR path);
 
 #pragma endregion
 

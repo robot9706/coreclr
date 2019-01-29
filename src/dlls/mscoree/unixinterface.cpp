@@ -602,4 +602,12 @@ void* coreclr_string_new(void* hostHandle, void* dataPointer)
     return host->APINewString(dataPointer);
 }
 
+extern "C"
+void* coreclr_assembly_load_file(void* hostHandle, void* path)
+{
+    ICLRRuntimeHost4* host = reinterpret_cast<ICLRRuntimeHost4*>(hostHandle);
+
+    return host->APIAssemblyLoad((LPCWSTR)path);
+}
+
 #pragma endregion
