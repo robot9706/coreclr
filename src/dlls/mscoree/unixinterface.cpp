@@ -416,6 +416,120 @@ int coreclr_execute_assembly(
 // The following functions should also be added to the "coreclr.def" to be exported.
 #pragma region EMBED API
 
+extern "C" 
+void* coreclr_init(const char* exePath)
+{
+    HRESULT hr;
+#ifdef FEATURE_PAL
+    DWORD error = PAL_InitializeCoreCLR(exePath);
+    hr = HRESULT_FROM_WIN32(error);
+
+    // If PAL initialization failed, then we should return right away and avoid
+    // calling any other APIs because they can end up calling into the PAL layer again.
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+#endif
+
+    ReleaseHolder<ICLRRuntimeHost4> host;
+
+    hr = CorHost2::CreateObject(IID_ICLRRuntimeHost4, (void**)&host);
+    if (FAILED(hr)) {
+        return nullptr;
+    }
+
+    host.SuppressRelease();
+
+    return (void*)host;
+}
+
+extern "C"
+HRESULT coreclr_start(void* hostHandle, const char* appDomainFriendlyName, int propertyCount, const char** propertyKeys, const char** propertyValues, unsigned int* domainId)
+{
+    ICLRRuntimeHost4* host = reinterpret_cast<ICLRRuntimeHost4*>(hostHandle);
+
+    HRESULT hr;
+
+    ConstWStringHolder appDomainFriendlyNameW = StringToUnicode(appDomainFriendlyName);
+
+    LPCWSTR* propertyKeysW;
+    LPCWSTR* propertyValuesW;
+    ConvertConfigPropertiesToUnicode(
+        propertyKeys,
+        propertyValues,
+        propertyCount,
+        &propertyKeysW,
+        &propertyValuesW);
+
+    // This will take ownership of propertyKeysWTemp and propertyValuesWTemp
+    Configuration::InitializeConfigurationKnobs(propertyCount, propertyKeysW, propertyValuesW);
+
+#if !defined(FEATURE_MERGE_JIT_AND_ENGINE)
+    // Fetch the path to JIT binary, if specified
+    g_CLRJITPath = Configuration::GetKnobStringValue(W("JIT_PATH"));
+#endif // !defined(FEATURE_MERGE_JIT_AND_ENGINE)
+
+    STARTUP_FLAGS startupFlags;
+    InitializeStartupFlags(&startupFlags);
+
+    hr = host->SetStartupFlags(startupFlags);
+    IfFailRet(hr);
+
+    hr = host->Start();
+    IfFailRet(hr);
+
+    hr = host->CreateAppDomainWithManager(
+        appDomainFriendlyNameW,
+        // Flags:
+        // APPDOMAIN_ENABLE_PLATFORM_SPECIFIC_APPS
+        // - By default CoreCLR only allows platform neutral assembly to be run. To allow
+        //   assemblies marked as platform specific, include this flag
+        //
+        // APPDOMAIN_ENABLE_PINVOKE_AND_CLASSIC_COMINTEROP
+        // - Allows sandboxed applications to make P/Invoke calls and use COM interop
+        //
+        // APPDOMAIN_SECURITY_SANDBOXED
+        // - Enables sandboxing. If not set, the app is considered full trust
+        //
+        // APPDOMAIN_IGNORE_UNHANDLED_EXCEPTION
+        // - Prevents the application from being torn down if a managed exception is unhandled
+        //
+        APPDOMAIN_ENABLE_PLATFORM_SPECIFIC_APPS |
+        APPDOMAIN_ENABLE_PINVOKE_AND_CLASSIC_COMINTEROP |
+        APPDOMAIN_DISABLE_TRANSPARENCY_ENFORCEMENT,
+        NULL,                    // Name of the assembly that contains the AppDomainManager implementation
+        NULL,                    // The AppDomainManager implementation type name
+        propertyCount,
+        propertyKeysW,
+        propertyValuesW,
+        (DWORD *)domainId);
+
+    if (SUCCEEDED(hr))
+    {
+#ifdef FEATURE_GDBJIT
+        HRESULT createDelegateResult;
+        createDelegateResult = coreclr_create_delegate(*hostHandle,
+            *domainId,
+            "SOS.NETCore",
+            "SOS.SymbolReader",
+            "GetInfoForMethod",
+            (void**)&getInfoForMethodDelegate);
+
+#if defined(_DEBUG)
+        if (!SUCCEEDED(createDelegateResult))
+        {
+            fprintf(stderr,
+                "Can't create delegate for 'SOS.SymbolReader.GetInfoForMethod' "
+                "method - status: 0x%08x\n", createDelegateResult);
+        }
+#endif // _DEBUG
+
+#endif
+    }
+    return hr;
+}
+
 extern "C"
 void* coreclr_assembly_load_memory(void* hostHandle, const char* dataPtr, int dataLength)
 {
