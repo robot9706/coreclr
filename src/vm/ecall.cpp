@@ -294,8 +294,8 @@ DWORD ECall::GetIDForMethod(MethodDesc *pMD)
                     //Found the method, no signature check
                     pointer->methodDesc = (void*)pMD; //Store the MethodDesc so we can return it when the calls are mapped back to the method desc
 
-                    USHORT high = (USHORT)(index / 0xFFFF);
-                    USHORT low = (USHORT)(index % 0xFFFF);
+                    USHORT high = (USHORT)((index & 0xFFFF0000) >> 16);
+                    USHORT low = (USHORT)((index % 0x0000FFFF));
 
                     return (((high + c_nECClasses) << 16) | low);
                 }
