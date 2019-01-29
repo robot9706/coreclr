@@ -586,7 +586,7 @@ void DispatchHolder::InitializeStatic()
 
     static_assert_no_msg(((sizeof(DispatchStub) + sizeof(DispatchStubShort)) % sizeof(void*)) == 0);
     static_assert_no_msg(((sizeof(DispatchStub) + sizeof(DispatchStubLong)) % sizeof(void*)) == 0);
-    static_assert_no_msg((DispatchStubLong_offsetof_failLabel - DispatchStubLong_offsetof_failDisplBase) < INT8_MAX);
+    // static_assert_no_msg((DispatchStubLong_offsetof_failLabel - DispatchStubLong_offsetof_failDisplBase) < INT8_MAX);
 
     // Common dispatch stub initialization
     dispatchInit._entryPoint [0]      = 0x48;

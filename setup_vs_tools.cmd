@@ -26,12 +26,6 @@ if defined VisualStudioVersion (
     goto skip_setup
 )
 
-echo %__MsgPrefix%Searching ^for Visual Studio 2017 or 2015 installation
-set _VSWHERE="%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
-if exist %_VSWHERE% (
-    for /f "usebackq tokens=*" %%i in (`%_VSWHERE% -latest -prerelease -property installationPath`) do set _VSCOMNTOOLS=%%i\Common7\Tools
-    goto call_vs
-)
 if not exist "%_VSCOMNTOOLS%" set _VSCOMNTOOLS=%VS140COMNTOOLS%
 echo VS2017 not found, using VS2015
 :call_vs
