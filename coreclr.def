@@ -1,0 +1,51 @@
+
+; Copy to bin\obj\[configuration]\src\dlls\mscoree\coreclr\coreclr.def
+
+; Licensed to the .NET Foundation under one or more agreements.
+; The .NET Foundation licenses this file to you under the MIT license.
+; See the LICENSE file in the project root for more information.
+
+EXPORTS
+;
+;   Common exports
+;
+
+
+
+        GetCLRRuntimeHost
+
+        ; dbgshim.dll depends on g_CLREngineMetrics having an ordinal of 2.
+        ; This cannot change, or else CoreCLR debugging will not work.
+        ; See clr\src\DLLS\dbgshim\dbgshim.cpp.
+        g_CLREngineMetrics                                  @2 data
+
+        ; VS depends on CLRJitAttachState having a ordinal of 3. This cannot change.
+        CLRJitAttachState                                   @3 data
+        
+        ; Unix hosting API
+        coreclr_create_delegate
+        coreclr_execute_assembly
+        coreclr_initialize
+        coreclr_shutdown
+        coreclr_shutdown_2
+
+        ; il{d}asm
+        MetaDataGetDispenser
+        GetMetaDataInternalInterface
+        GetMetaDataInternalInterfaceFromPublic
+        GetMetaDataPublicInterfaceFromInternal
+
+        CreateCLRProfiling
+
+        ; Embed API
+        coreclr_assembly_load_memory
+        coreclr_assembly_load_file
+        coreclr_assembly_get_name
+        coreclr_assembly_exec_main
+        coreclr_assembly_find_method
+        coreclr_icall_ptr
+        coreclr_string_getpointer
+        coreclr_string_new
+        coreclr_array_getpointer
+        coreclr_init
+        coreclr_start
