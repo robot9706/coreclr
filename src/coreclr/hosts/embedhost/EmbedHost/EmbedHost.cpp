@@ -8,8 +8,8 @@
 using namespace std;
 
 //Path stuff
-static wchar_t *CLRDirectory = L"D:\\CSharp\\GitHub\\coreclr\\bin\\Product\\Windows_NT.x86.Debug";
-static wchar_t *ManagedDLLPath = L"D:\\CSharp\\GitHub\\coreclr\\src\\coreclr\\hosts\\embedhost\\ManagedLibrary\\bin\\Debug\\netcoreapp2.2\\ManagedLibrary.dll";
+static wchar_t *CLRDirectory = [Path to the output folder ex: L"C:\\...\\coreclr\\bin\\Product\\Windows_NT.x86.Debug"];
+static wchar_t *ManagedDLLPath = [Path to the managed dll L"C:\\...\\coreclr\\src\\coreclr\\hosts\\embedhost\\ManagedLibrary\\bin\\Debug\\netcoreapp2.2\\ManagedLibrary.dll";
 
 //CoreCLR functions
 static coreclr_initialize_ptr _clrInit;
